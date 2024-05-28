@@ -1,0 +1,65 @@
+If we are going to combine all major box score statistics to develop a single overall metric, we have to figure out some weight to weight those distinct statistics. To do so, we must come up with some valuation system for each event (made FG, REB, etc). Because of this, I think it is best if we approach this analysis with a "points added" approach, and use that approach to assign each event a value.
+
+To do this, we must first define some value $\bar{p}$ that represents the average points per possession league-wide. Whether we make this value clutch-specific or adjusted for different years can be defined at a later date.
+
+Now let's define what the points added would be for each counting stat...
+
+$$\text{2pt Field Goal Made}_{PA} = 2 - \bar{p}$$
+
+$$\text{3pt Field Goal Made}_{PA} = 3 - \bar{p}$$
+
+$$\text{FT Made}_{PA} = 1 - (\bar{p}*0.44)$$
+
+0.44 is the same weight given to FTAs in true-shooting percentage
+
+$$\text{Field Goal Miss}_{PA} = - (\bar{p}*DRB\%)$$
+
+Here we have a $DRB\%$ chance of missing out on the chance to score on this possession.
+
+$$\text{FT Miss}_{PA} = - (\bar{p}*0.44)$$
+
+Offensive rebounds on free throws are very rare.
+
+Let's say the average points on a FGM are $\bar{p}_{FGM}$...
+
+$$\text{Assist}_{PA} = \bar{p}_{FGM} - \bar{p}$$
+
+$$\text{DRB}_{PA} = ORB\%*\bar{p}$$
+By getting a defensive rebound, there is a $ORB\%$ chance you are taking away another possession from the other team. 
+
+$$\text{ORB}_{PA} = DRB\%*\bar{p}$$
+
+Same logic applies here.
+
+$$\text{Steal}_{PA} = \bar{p}$$
+
+$$\text{Block}_{PA} = DRB\%*\bar{p}$$
+When you block a shot, there is a $DRB\%$ chance you are ending the opposing team's possession with zero points. 
+
+$$\text{TO}_{PA} = -\bar{p}$$
+
+```{r}
+## Example weight calculation 
+## weights taken from 2023-24 league averages 
+## of basketball reference
+ppp = 1.157
+orb = 0.244
+drb = 1 - orb
+ppFGM = (42.6*2 + 12.9)/42.6
+
+PA_2FGM = 2 - ppp
+PA_3FGM = 3 - ppp
+PA_FTM = 1 - (ppp*0.44)
+PA_FG.miss = -drb*ppp
+PA_FT.miss = -0.44*ppp
+PA_assist = ppFGM - ppp
+PA_drb = orb*ppp
+PA_orb = drb*ppp
+PA_stls = ppp
+PA_blk = ppp*drb
+PA_TO = -ppp
+
+
+
+```
+

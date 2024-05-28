@@ -1,0 +1,13 @@
+name: compare_stats
+title: compare_stats
+username: logan-godfrey
+account: logan-godfrey
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 11753178
+bundleId: 8497908
+url: https://logan-godfrey.shinyapps.io/compare_stats/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: comparefunction.R|points_added_func.R|scrape.R

@@ -1,0 +1,144 @@
+
+
+```{r, message = F, warning = F}
+
+#load packages
+
+library(tidyverse)
+library(hoopR)  
+library(tidymodels)
+
+```
+
+
+
+```{r, message = FALSE}
+
+#import/tidy data
+
+clutch_data <- nba_leaguedashplayerclutch(season = year_to_season(2017))
+
+clutch_data <- as.data.frame(clutch_data)
+
+names(clutch_data) <- gsub(pattern = "LeagueDashPlayerClutch.", replacement = "", x = names(clutch_data))
+
+excluded <- c("GROUP_SET", "PLAYER_NAME", "NICKNAME", "TEAM_ABBREVIATION")
+
+clutch_datanums <- clutch_data |> 
+  mutate_if(is.character, as.numeric) |> 
+  select(-excluded)
+
+tidy_clutch <- clutch_data |>
+  mutate(PLAYER_ID = as.numeric(PLAYER_ID)) |>
+  select(PLAYER_ID, PLAYER_NAME, NICKNAME, TEAM_ABBREVIATION) |>
+  left_join(clutch_datanums, join_by(PLAYER_ID))
+
+```
+
+```{r, message = FALSE}
+
+#team data cleaning to make win percentage prediction model
+
+team_clutch_data <- clutch_data
+
+team_clutch_data <- as.data.frame(team_clutch_data)
+
+names(team_clutch_data) <- gsub(pattern = "LeagueDashTeamClutch.", replacement = "", x = names(team_clutch_data))
+
+excluded <- c("TEAM_NAME")
+
+team_clutch_datanums <- team_clutch_data |>
+  mutate_if(is.character, as.numeric) |>
+  select(-excluded)
+
+team_clutch_datanums
+
+team_tidy_clutch <- team_clutch_data |>
+  mutate(TEAM_ID = as.numeric(TEAM_ID)) |>
+  select(TEAM_ID, TEAM_NAME) |>
+  left_join(team_clutch_datanums, join_by(TEAM_ID))
+
+```
+
+```{r}
+
+#model to get weights
+
+win_perc_model <- lm(W_PCT ~ FG_PCT + PTS + PF + BLK + STL + TOV + AST + DREB + OREB, data = tidy_clutch)
+
+tidy(win_perc_model)
+
+weights <- tidy(win_perc_model) |> 
+  slice(2:10) |> 
+  select(estimate) |> 
+  data.matrix()
+
+```
+
+```{r}
+#clutch metric?
+
+datamat <- data.matrix(select(tidy_clutch, FG_PCT, PTS, PF, BLK, STL, TOV, AST, DREB, OREB))
+
+clutch_scores <- datamat %*% weights
+
+player_final <- clutch_scores |>
+  as.data.frame() |> 
+  cbind(tidy_clutch) |> 
+  rename(clutch_score = estimate) |> 
+  arrange(desc(clutch_score))
+
+player_final
+
+write.csv(player_final, "compare_stats/clutch2017.csv")
+
+```
+
+```{r}
+
+player_names <- player_final |> 
+  select(PLAYER_NAME)
+
+filter_choices <- c("Clutch", "FG_PCT", "PTS", "PF", "BLK", "STL", "TOV", "AST", "DREB", "OREB")
+
+year <- c("1996-97", "1997-98", "1998-99", "1999-00", "2000-01", "2001-02", "2002-03", "2003-04", "2004-05", "2005-06", "2006-07", "2007-08", "2008-09", "2009-10", "2010-11", "2011-12", "2012-13", "2013-14", "2014-15", "2015-16", "2016-17", "2017-18", "2018-19", "2010-20", "2020-21", "2021-22", "2022-23", "2023-24")
+```
+
+
+```{r}
+
+logan <- function(year) {
+
+d1 <- nba_leaguedashplayerclutch(season = year_to_season(gsub(pattern = "-.*", replacement = "", x = year))) |> 
+                    as.data.frame() |> 
+                    rename_with(.cols = everything(), .fn = ~gsub(pattern = "LeagueDashPlayerClutch.", replacement = "", x = .)) |> 
+                    mutate_if(is.character, as.numeric) |> 
+                    select(-excluded)
+   
+   d2 <- nba_leaguedashplayerclutch(season = year_to_season(gsub(pattern = "-.*", replacement = "", x = year))) |>
+                    as.data.frame() |> 
+                    rename_with(.cols = everything(), .fn = ~gsub(pattern = "LeagueDashPlayerClutch.", replacement = "", x = .)) |> 
+                    mutate(PLAYER_ID = as.numeric(PLAYER_ID)) |>
+                    select(PLAYER_ID, PLAYER_NAME, NICKNAME, TEAM_ABBREVIATION) |>
+                    left_join(d1, join_by(PLAYER_ID))
+   
+   weights <- reactive(lm(W_PCT ~ FG_PCT + PTS + PF + BLK + STL + TOV + AST + DREB + OREB, data = d2) |> 
+                         tidy() |> 
+                         slice(2:10) |> 
+                         select(estimate) |> 
+                         data.matrix())
+   
+   final <- data.matrix(select(d2, FG_PCT, PTS, PF, BLK, STL, TOV, AST, DREB, OREB)) %*% weights() |>
+     as.data.frame() |> 
+     cbind(d2) |> 
+     rename(clutch_score = estimate)
+}
+   
+```
+
+```{r}
+
+
+
+```
+
